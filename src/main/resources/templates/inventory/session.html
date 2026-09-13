@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Inventario')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('inventory')}"></nav>
+<main class="container py-3" th:with="inv=${inventory}">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a th:href="@{/inventory}">Inventario</a></li>
+            <li class="breadcrumb-item active" th:text="${#temporals.format(inv.startedAt, 'dd/MM/yyyy')}"></li>
+        </ol>
+    </nav>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+
+    <div class="d-flex align-items-start justify-content-between flex-wrap gap-2 mb-3">
+        <div>
+            <h1 class="h3 mb-1">
+                Inventario del <span th:text="${#temporals.format(inv.startedAt, 'dd/MM/yyyy')}"></span>
+                <span th:if="${inv.open}" class="badge text-bg-warning align-middle fs-6">In corso</span>
+                <span th:unless="${inv.open}" class="badge text-bg-success align-middle fs-6">Chiuso</span>
+            </h1>
+            <div class="small text-muted">
+                Avviato da <span th:text="${inv.startedBy}"></span>
+                alle <span th:text="${#temporals.format(inv.startedAt, 'HH:mm')}"></span>
+                <th:block th:unless="${inv.open}">
+                    · chiuso da <span th:text="${inv.closedBy}"></span>
+                    il <span th:text="${#temporals.format(inv.closedAt, 'dd/MM/yyyy HH:mm')}"></span>
+                </th:block>
+            </div>
+        </div>
+        <div th:if="${inv.open}" class="d-flex gap-2">
+            <form sec:authorize="hasAuthority('ADMIN')" th:action="@{/inventory/{id}/cancel(id=${inv.id})}" method="post"
+                  data-confirm="Annullare l'inventario? I conteggi inseriti andranno persi.">
+                <button type="submit" class="btn btn-outline-secondary">Annulla</button>
+            </form>
+            <form th:action="@{/inventory/{id}/close(id=${inv.id})}" method="post"
+                  data-confirm="Chiudere l'inventario? Le quantità delle pubblicazioni contate verranno aggiornate con le copie contate.">
+                <button type="submit" class="btn btn-success"><i class="bi bi-check2-all"></i> Chiudi inventario</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-2 mb-3">
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Contate</div>
+                <div class="stat-value"><span data-stat="counted" th:text="${inv.countedCount}">0</span><small class="text-muted"> / <span th:text="${#lists.size(inv.rows)}">0</span></small></div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="stat-card">
+                <div class="stat-label">Con differenze</div>
+                <div class="stat-value text-danger" data-stat="differences" th:text="${inv.differenceCount}">0</div>
+            </div>
+        </div>
+    </div>
+
+    <p th:if="${inv.open}" class="text-muted small mb-2">
+        Inserisci le copie contate per ogni pubblicazione, oppure premi <i class="bi bi-check-lg"></i> se corrispondono
+        alla quantità a sistema. I conteggi vengono salvati subito; le quantità si aggiornano alla chiusura.
+    </p>
+
+    <div th:if="${#lists.isEmpty(inv.rows)}" class="empty-state">
+        <i class="bi bi-clipboard"></i>
+        <p class="mb-0" th:text="${inv.open} ? 'Nessuna pubblicazione da contare.' : 'Nessuna pubblicazione è stata contata.'"></p>
+    </div>
+
+    <th:block th:unless="${#lists.isEmpty(inv.rows)}">
+        <div class="sticky-toolbar d-flex gap-2 flex-wrap">
+            <div class="input-group flex-grow-1" style="min-width: 220px">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" class="form-control" placeholder="Cerca per codice o titolo…"
+                       data-filter-input="#inventory-rows" autocomplete="off" aria-label="Cerca">
+            </div>
+            <select class="form-select w-auto" data-filter-mode="#inventory-rows" aria-label="Filtro">
+                <option value="all">Tutte</option>
+                <option th:if="${inv.open}" value="todo">Da contare</option>
+                <option value="diff">Con differenze</option>
+            </select>
+        </div>
+
+        <div id="inventory-rows" class="list-group shadow-sm"
+             th:data-count-url="${inv.open} ? @{/inventory/{id}/count(id=${inv.id})} : null">
+            <div th:each="r : ${inv.rows}" class="list-group-item pub-row" data-filter-item data-count-row
+                 th:data-filter-text="${r.code + ' ' + r.title}"
+                 th:data-publication-id="${r.publicationId}"
+                 th:data-expected="${r.expected}"
+                 th:data-counted="${r.counted}"
+                 th:data-diff="${r.difference}">
+                <div class="pub-thumb">
+                    <img th:if="${r.imageUrl != null}" th:src="@{${r.imageUrl}}" alt="" loading="lazy">
+                    <i th:if="${r.imageUrl == null}" class="bi bi-book"></i>
+                </div>
+                <div class="pub-info">
+                    <span class="pub-code" th:text="${r.code}"></span>
+                    <div class="pub-title" th:text="${r.title}"></div>
+                    <div class="small text-muted">
+                        <span th:text="${inv.open} ? 'A sistema:' : 'Attese:'"></span>
+                        <strong data-expected-label th:text="${r.expected}"></strong>
+                    </div>
+                </div>
+                <div class="count-widget" th:if="${inv.open}">
+                    <input type="number" min="0" inputmode="numeric" class="form-control qty-input count-input"
+                           th:value="${r.counted}" placeholder="—" aria-label="Copie contate">
+                    <button type="button" class="btn btn-outline-success qty-btn" data-match
+                            th:title="'Corrisponde (' + ${r.expected} + ')'" aria-label="Corrisponde alla quantità a sistema">
+                        <i class="bi bi-check-lg"></i>
+                    </button>
+                </div>
+                <div class="count-widget" th:unless="${inv.open}">
+                    <span class="small text-muted">Contate</span> <strong class="fs-5" th:text="${r.counted}"></strong>
+                </div>
+                <span class="badge diff-badge" data-diff-badge></span>
+            </div>
+        </div>
+        <p class="text-muted mt-3" hidden data-filter-empty="#inventory-rows">Nessuna pubblicazione corrisponde ai filtri.</p>
+    </th:block>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

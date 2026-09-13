@@ -1,0 +1,227 @@
+:root {
+    --app-bg: #f4f5f9;
+    --app-nav: #1e2a45;
+    --app-accent: #3b5bdb;
+    --app-accent-soft: #e7ecff;
+}
+
+body {
+    background: var(--app-bg);
+    min-height: 100vh;
+}
+
+.narrow {
+    max-width: 760px;
+}
+
+/* ---------- navbar ---------- */
+.app-navbar {
+    background: var(--app-nav);
+}
+
+.app-navbar .nav-link.active {
+    font-weight: 600;
+}
+
+/* ---------- auth / error ---------- */
+.auth-page {
+    display: flex;
+    align-items: center;
+    padding-block: 2rem;
+}
+
+.auth-logo {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto;
+    border-radius: 16px;
+    background: var(--app-nav);
+    color: #fff;
+    font-size: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* ---------- lists ---------- */
+.sticky-toolbar {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: var(--app-bg);
+    padding-block: .5rem;
+    margin-bottom: .25rem;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: #868e96;
+}
+
+.empty-state .bi {
+    font-size: 2.5rem;
+    display: block;
+    margin-bottom: .5rem;
+}
+
+.pub-row {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    flex-wrap: wrap;
+}
+
+.pub-thumb {
+    flex: 0 0 44px;
+    width: 44px;
+    height: 58px;
+    border-radius: 6px;
+    background: #e9ecef;
+    color: #adb5bd;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.pub-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.pub-thumb-lg {
+    flex-basis: 90px;
+    width: 90px;
+    height: 120px;
+    font-size: 2rem;
+}
+
+.pub-info {
+    flex: 1 1 180px;
+    min-width: 0;
+}
+
+.pub-code {
+    display: inline-block;
+    font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+    font-size: .8rem;
+    font-weight: 600;
+    color: var(--app-accent);
+    background: var(--app-accent-soft);
+    padding: .05rem .45rem;
+    border-radius: 4px;
+}
+
+.pub-title {
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.pub-actions {
+    display: flex;
+}
+
+/* ---------- quantity / count widgets ---------- */
+.qty-widget,
+.count-widget {
+    display: flex;
+    align-items: center;
+    gap: .35rem;
+}
+
+.qty-btn {
+    width: 44px;
+    height: 44px;
+    padding: 0;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+}
+
+.qty-input {
+    width: 76px;
+    height: 44px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    -moz-appearance: textfield;
+}
+
+.qty-input::-webkit-outer-spin-button,
+.qty-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.diff-badge {
+    min-width: 3rem;
+}
+
+.flash-ok {
+    animation: flash-ok .9s ease-out;
+}
+
+.flash-error {
+    animation: flash-error 1.2s ease-out;
+}
+
+@keyframes flash-ok {
+    from { background-color: #d3f9d8; }
+    to { background-color: transparent; }
+}
+
+@keyframes flash-error {
+    from { background-color: #ffe3e3; }
+    to { background-color: transparent; }
+}
+
+@media (max-width: 575.98px) {
+    .qty-widget,
+    .count-widget {
+        margin-left: auto;
+    }
+}
+
+/* ---------- stats ---------- */
+.stat-card {
+    background: #fff;
+    border-radius: .5rem;
+    padding: .75rem 1rem;
+    box-shadow: 0 .125rem .25rem rgba(0, 0, 0, .075);
+}
+
+.stat-label {
+    font-size: .8rem;
+    color: #868e96;
+    text-transform: uppercase;
+}
+
+.stat-value {
+    font-size: 1.6rem;
+    font-weight: 700;
+}
+
+/* ---------- badges ---------- */
+.movement-IN { background: #2b8a3e; color: #fff; }
+.movement-OUT { background: #c92a2a; color: #fff; }
+.movement-SET { background: #868e96; color: #fff; }
+.movement-INVENTORY { background: #1971c2; color: #fff; }
+
+.role-SUPER_ADMIN { background: #212529; color: #fff; }
+.role-ADMIN { background: var(--app-accent); color: #fff; }
+.role-USER { background: #e9ecef; color: #495057; }
+
+/* ---------- toast ---------- */
+.app-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1rem;
+    transform: translateX(-50%);
+    z-index: 1080;
+    width: min(92vw, 420px);
+}

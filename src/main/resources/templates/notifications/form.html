@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head(${view == null} ? 'Nuova notifica' : ${view.name})}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('notifications')}"></nav>
+<main class="container py-3 narrow">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a th:href="@{/notifications}">Notifiche</a></li>
+            <li class="breadcrumb-item active" th:text="${view == null} ? 'Nuova' : ${view.name}"></li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3" th:text="${view == null} ? 'Nuova notifica' : ${view.name}"></h1>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+
+    <div th:if="${!editable}" class="alert alert-secondary">
+        <i class="bi bi-lock"></i> Notifica degli amministratori: puoi solo visualizzarla.
+    </div>
+
+    <div th:if="${view != null}" class="card shadow-sm mb-3">
+        <div class="card-body small d-flex flex-wrap gap-4">
+            <div><div class="text-muted">Stato</div>
+                <span th:if="${view.enabled}" class="badge text-bg-success">Attiva</span>
+                <span th:unless="${view.enabled}" class="badge text-bg-light border">Disattivata</span></div>
+            <div><div class="text-muted">Prossimo invio</div>
+                <span th:text="${view.nextRunAt != null} ? ${#temporals.format(view.nextRunAt, 'dd/MM/yyyy HH:mm')} : '—'"></span></div>
+            <div><div class="text-muted">Ultimo invio</div>
+                <span th:text="${view.lastSentAt != null} ? ${#temporals.format(view.lastSentAt, 'dd/MM/yyyy HH:mm')} : '—'"></span></div>
+            <div><div class="text-muted">Creata da</div><span th:text="${view.ownerName}"></span></div>
+            <div th:if="${view.lastError != null}" class="text-danger w-100">
+                <i class="bi bi-exclamation-triangle"></i> Ultimo invio non riuscito: <span th:text="${view.lastError}"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form th:action="${view == null} ? @{/notifications/new} : @{/notifications/{id}(id=${view.id})}"
+                  th:object="${form}" method="post">
+                <fieldset th:disabled="${!editable}">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label for="name" class="form-label">Nome</label>
+                            <input type="text" id="name" th:field="*{name}" class="form-control" maxlength="150"
+                                   placeholder="es. Promemoria inventario mensile"
+                                   th:classappend="${#fields.hasErrors('name')} ? 'is-invalid'" required>
+                            <div class="invalid-feedback" th:errors="*{name}"></div>
+                        </div>
+
+                        <div class="col-12"><h2 class="h6 text-uppercase text-muted mb-0 mt-2">Email</h2></div>
+                        <div class="col-12">
+                            <label for="recipients" class="form-label">Destinatari</label>
+                            <textarea id="recipients" th:field="*{recipients}" class="form-control" rows="3"
+                                      placeholder="mario.rossi@example.com, anna.bianchi@example.com"
+                                      th:classappend="${#fields.hasErrors('recipients')} ? 'is-invalid'" required></textarea>
+                            <div class="invalid-feedback" th:errors="*{recipients}"></div>
+                            <div class="form-text">Separa gli indirizzi con una virgola o vai a capo. I destinatari non vedono gli altri indirizzi.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="subject" class="form-label">Oggetto</label>
+                            <input type="text" id="subject" th:field="*{subject}" class="form-control" maxlength="255"
+                                   placeholder="es. Inventario biblioteca entro il 10"
+                                   th:classappend="${#fields.hasErrors('subject')} ? 'is-invalid'" required>
+                            <div class="invalid-feedback" th:errors="*{subject}"></div>
+                        </div>
+                        <div class="col-12">
+                            <label for="body" class="form-label">Testo</label>
+                            <textarea id="body" th:field="*{body}" class="form-control" rows="6"
+                                      th:classappend="${#fields.hasErrors('body')} ? 'is-invalid'" required></textarea>
+                            <div class="invalid-feedback" th:errors="*{body}"></div>
+                        </div>
+
+                        <div class="col-12"><h2 class="h6 text-uppercase text-muted mb-0 mt-2">Programmazione</h2></div>
+                        <div class="col-sm-6">
+                            <label for="scheduleType" class="form-label">Frequenza</label>
+                            <select id="scheduleType" th:field="*{scheduleType}" class="form-select" data-schedule-type>
+                                <option th:each="t : ${scheduleTypes}" th:value="${t}" th:text="${t.label}"></option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6" data-show-for="ONCE">
+                            <label for="runDate" class="form-label">Data</label>
+                            <input type="date" id="runDate" th:field="*{runDate}" class="form-control">
+                        </div>
+                        <div class="col-sm-6" data-show-for="WEEKLY">
+                            <label for="dayOfWeek" class="form-label">Giorno della settimana</label>
+                            <select id="dayOfWeek" th:field="*{dayOfWeek}" class="form-select">
+                                <option th:each="d : ${daysOfWeek}" th:value="${d.key}" th:text="${d.value}"></option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6" data-show-for="MONTHLY">
+                            <label for="dayOfMonth" class="form-label">Giorno del mese</label>
+                            <input type="number" id="dayOfMonth" th:field="*{dayOfMonth}" class="form-control" min="1" max="31" placeholder="es. 5">
+                            <div class="form-text">Se il mese ha meno giorni, l'invio avviene l'ultimo giorno del mese.</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label for="sendTime" class="form-label">Orario di invio</label>
+                            <input type="time" id="sendTime" th:field="*{sendTime}" class="form-control"
+                                   th:classappend="${#fields.hasErrors('sendTime')} ? 'is-invalid'" required>
+                            <div class="invalid-feedback" th:errors="*{sendTime}"></div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="enabled" th:field="*{enabled}">
+                                <label class="form-check-label" for="enabled">Notifica attiva</label>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+                <div class="d-flex gap-2 mt-4">
+                    <button th:if="${editable}" type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Salva</button>
+                    <a th:href="@{/notifications}" class="btn btn-outline-secondary" th:text="${editable} ? 'Annulla' : 'Indietro'">Annulla</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div th:if="${editable and view != null}" class="d-flex justify-content-between flex-wrap gap-2 mt-3">
+        <form th:action="@{/notifications/{id}/send-now(id=${view.id})}" method="post"
+              data-confirm="Inviare ora l'email ai destinatari? La programmazione non cambia.">
+            <button type="submit" class="btn btn-outline-primary"><i class="bi bi-send"></i> Invia ora</button>
+        </form>
+        <form th:action="@{/notifications/{id}/delete(id=${view.id})}" method="post"
+              data-confirm="Eliminare questa notifica?">
+            <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Elimina</button>
+        </form>
+    </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

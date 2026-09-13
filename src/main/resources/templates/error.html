@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Errore')}"></head>
+<body class="auth-page">
+<main class="container text-center" style="max-width: 560px">
+    <div class="display-3 fw-bold text-secondary" th:text="${status}">500</div>
+    <th:block th:switch="${status}">
+        <th:block th:case="403">
+            <h1 class="h4">Accesso negato</h1>
+            <p class="text-muted">Non hai i permessi per questa operazione.</p>
+        </th:block>
+        <th:block th:case="404">
+            <h1 class="h4">Non trovato</h1>
+            <p class="text-muted">La pagina o l'elemento richiesto non esiste.</p>
+        </th:block>
+        <th:block th:case="*">
+            <h1 class="h4">Si è verificato un errore</h1>
+            <p class="text-muted">Riprova tra qualche istante.</p>
+        </th:block>
+    </th:block>
+    <a th:href="@{/publications}" class="btn btn-primary mt-2">Torna alle pubblicazioni</a>
+</main>
+</body>
+</html>

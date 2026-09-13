@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head(${userId == null} ? 'Nuovo utente' : 'Modifica utente')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('users')}"></nav>
+<main class="container py-3 narrow">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a th:href="@{/admin/users}">Utenti</a></li>
+            <li class="breadcrumb-item active" th:text="${userId == null} ? 'Nuovo' : 'Modifica'"></li>
+        </ol>
+    </nav>
+    <h1 class="h3 mb-3" th:text="${userId == null} ? 'Nuovo utente' : 'Modifica utente'"></h1>
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <form th:action="${userId == null} ? @{/admin/users/new} : @{/admin/users/{id}/edit(id=${userId})}"
+                  th:object="${form}" method="post">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <label for="fullName" class="form-label">Nome e cognome</label>
+                        <input type="text" id="fullName" th:field="*{fullName}" class="form-control" maxlength="150"
+                               th:classappend="${#fields.hasErrors('fullName')} ? 'is-invalid'" required autofocus>
+                        <div class="invalid-feedback" th:errors="*{fullName}"></div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" id="email" th:field="*{email}" class="form-control"
+                               th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'" required>
+                        <div class="invalid-feedback" th:errors="*{email}"></div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="role" class="form-label">Ruolo</label>
+                        <select id="role" th:field="*{role}" class="form-select"
+                                th:classappend="${#fields.hasErrors('role')} ? 'is-invalid'">
+                            <option th:each="r : ${roles}" th:value="${r}" th:text="${r.label}"></option>
+                        </select>
+                        <div class="invalid-feedback" th:errors="*{role}"></div>
+                        <div class="form-text">Admin: gestisce tutto. Utente: inventario e quantità.</div>
+                    </div>
+                    <div class="col-sm-6" sec:authorize="hasAuthority('SUPER_ADMIN')">
+                        <label for="congregationId" class="form-label">Congregazione</label>
+                        <select id="congregationId" th:field="*{congregationId}" class="form-select" required>
+                            <option value="">Seleziona…</option>
+                            <option th:each="c : ${congregations}" th:value="${c.id}" th:text="${c.name}"></option>
+                        </select>
+                        <div class="form-text" th:if="${#lists.isEmpty(congregations)}">
+                            Prima <a th:href="@{/superadmin/congregations}">crea una congregazione</a>.
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" id="password" th:field="*{password}" class="form-control"
+                               autocomplete="new-password" minlength="8" th:required="${userId == null}">
+                        <div class="form-text" th:text="${userId == null} ? 'Almeno 8 caratteri.' : 'Lascia vuoto per non cambiarla.'"></div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" id="enabled" th:field="*{enabled}">
+                            <label class="form-check-label" for="enabled">Account attivo (può accedere)</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 mt-4">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check-lg"></i> Salva</button>
+                    <a th:href="@{/admin/users}" class="btn btn-outline-secondary">Annulla</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div th:if="${userId != null}" class="card border-danger-subtle mt-4">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div>
+                <strong>Elimina utente</strong>
+                <div class="small text-muted">Le sue notifiche personali verranno eliminate. Lo storico dei movimenti resta.</div>
+            </div>
+            <form th:action="@{/admin/users/{id}/delete(id=${userId})}" method="post"
+                  data-confirm="Eliminare definitivamente questo utente?">
+                <button type="submit" class="btn btn-outline-danger"><i class="bi bi-trash"></i> Elimina</button>
+            </form>
+        </div>
+    </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Movimenti')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('movements')}"></nav>
+<main class="container py-3">
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h1 class="h3 mb-0">Movimenti</h1>
+        <form th:action="@{/movements}" method="get" class="d-flex gap-2">
+            <select name="publicationId" class="form-select" data-autosubmit aria-label="Filtra per pubblicazione">
+                <option value="">Tutte le pubblicazioni</option>
+                <option th:each="p : ${publications}" th:value="${p.id}" th:text="${p.code + ' — ' + p.title}"
+                        th:selected="${p.id == selectedPublicationId}"></option>
+            </select>
+            <noscript><button type="submit" class="btn btn-outline-secondary">Filtra</button></noscript>
+        </form>
+    </div>
+
+    <div th:if="${movements.empty}" class="empty-state">
+        <i class="bi bi-arrow-left-right"></i>
+        <p class="mb-0">Nessun movimento registrato.</p>
+    </div>
+
+    <div th:unless="${movements.empty}" class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                <tr>
+                    <th>Data</th>
+                    <th>Pubblicazione</th>
+                    <th>Tipo</th>
+                    <th class="text-end">Variazione</th>
+                    <th class="text-end">Quantità</th>
+                    <th>Utente</th>
+                    <th>Congregazione</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="m : ${movements.content}">
+                    <td class="text-nowrap" th:text="${#temporals.format(m.createdAt, 'dd/MM/yyyy HH:mm')}"></td>
+                    <td>
+                        <a th:href="@{/movements(publicationId=${m.publicationId})}" class="text-decoration-none">
+                            <span class="pub-code" th:text="${m.publicationCode}"></span>
+                        </a>
+                        <span class="small" th:text="${m.publicationTitle}"></span>
+                    </td>
+                    <td><span class="badge" th:classappend="'movement-' + ${m.type}" th:text="${m.type.label}"></span></td>
+                    <td class="text-end fw-semibold" th:classappend="${m.delta > 0} ? 'text-success' : 'text-danger'"
+                        th:text="${m.delta > 0} ? '+' + ${m.delta} : ${m.delta}"></td>
+                    <td class="text-end" th:text="${m.quantityAfter}"></td>
+                    <td th:text="${m.userName}"></td>
+                    <td th:text="${m.congregationName ?: '—'}"></td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <nav th:if="${movements.totalPages > 1}" class="d-flex align-items-center justify-content-between mt-3">
+        <a class="btn btn-outline-secondary" th:classappend="${movements.first} ? 'disabled'"
+           th:href="@{/movements(publicationId=${selectedPublicationId},page=${movements.number - 1})}">
+            <i class="bi bi-chevron-left"></i> Più recenti</a>
+        <span class="text-muted small">Pagina <span th:text="${movements.number + 1}"></span> di <span th:text="${movements.totalPages}"></span></span>
+        <a class="btn btn-outline-secondary" th:classappend="${movements.last} ? 'disabled'"
+           th:href="@{/movements(publicationId=${selectedPublicationId},page=${movements.number + 1})}">
+            Meno recenti <i class="bi bi-chevron-right"></i></a>
+    </nav>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

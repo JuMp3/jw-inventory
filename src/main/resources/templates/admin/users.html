@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Utenti')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('users')}"></nav>
+<main class="container py-3">
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+        <h1 class="h3 mb-0">Utenti</h1>
+        <a th:href="@{/admin/users/new}" class="btn btn-primary"><i class="bi bi-person-plus"></i> Nuovo utente</a>
+    </div>
+
+    <div class="sticky-toolbar">
+        <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-search"></i></span>
+            <input type="search" class="form-control" placeholder="Cerca per nome, email o congregazione…"
+                   data-filter-input="#user-rows" autocomplete="off" aria-label="Cerca">
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>Email</th>
+                    <th>Ruolo</th>
+                    <th sec:authorize="hasAuthority('SUPER_ADMIN')">Congregazione</th>
+                    <th>Stato</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody id="user-rows">
+                <tr th:each="u : ${users}" data-filter-item
+                    th:data-filter-text="${u.fullName + ' ' + u.email + ' ' + (u.congregationName ?: '')}">
+                    <td class="fw-semibold" th:text="${u.fullName}"></td>
+                    <td th:text="${u.email}"></td>
+                    <td><span class="badge" th:classappend="'role-' + ${u.role}" th:text="${u.role.label}"></span></td>
+                    <td sec:authorize="hasAuthority('SUPER_ADMIN')" th:text="${u.congregationName ?: '—'}"></td>
+                    <td>
+                        <span th:if="${u.enabled}" class="badge text-bg-success">Attivo</span>
+                        <span th:unless="${u.enabled}" class="badge text-bg-light border">Disattivato</span>
+                    </td>
+                    <td class="text-end">
+                        <a th:if="${u.role.assignable}" th:href="@{/admin/users/{id}/edit(id=${u.id})}"
+                           class="btn btn-sm btn-outline-secondary" title="Modifica"><i class="bi bi-pencil"></i></a>
+                        <span th:unless="${u.role.assignable}" class="small text-muted"><i class="bi bi-shield-lock"></i></span>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <p class="text-muted mt-3" hidden data-filter-empty="#user-rows">Nessun utente trovato.</p>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

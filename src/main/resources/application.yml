@@ -1,0 +1,70 @@
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  application:
+    name: jw-inventory
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5435/jwinventory}
+    username: ${DB_USERNAME:admin}
+    password: ${DB_PASSWORD:password}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    open-in-view: false
+    show-sql: false
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:validate}
+  flyway:
+    enabled: true
+  servlet:
+    # Deliberately above the 2 MB image limit: oversized uploads reach PublicationService and get
+    # a readable message instead of a multipart parsing failure (which surfaces as a CSRF 403)
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
+  mail:
+    # For local dev with Mailpit (docker compose): MAIL_HOST=localhost MAIL_PORT=1027 MAIL_SMTP_AUTH=false MAIL_SMTP_STARTTLS=false
+    host: ${MAIL_HOST:}
+    port: ${MAIL_PORT:}
+    username: ${MAIL_USERNAME:}
+    password: ${MAIL_PASSWORD:}
+    properties:
+      mail.smtp.auth: ${MAIL_SMTP_AUTH:}
+      mail.smtp.starttls.enable: ${MAIL_SMTP_STARTTLS:}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      probes:
+        enabled: true
+
+server:
+  shutdown: graceful
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+  error:
+    whitelabel:
+      enabled: false
+
+app:
+  timezone: ${APP_TIMEZONE:Europe/Rome}
+  email-enabled: ${EMAIL_ENABLED:true}
+  mail:
+    from: ${MAIL_FROM:noreply@jwinventory.local}
+    from-name: ${MAIL_FROM_NAME:Inventario Biblioteca}
+  super-admin:
+    email: ${SUPERADMIN_EMAIL:superadmin@jwinventory.local}
+    password: ${SUPERADMIN_PASSWORD:superadmin123}
+    full-name: ${SUPERADMIN_NAME:Super Admin}
+  notifications:
+    scheduler-enabled: ${NOTIFICATIONS_SCHEDULER_ENABLED:true}
+    poll-interval-ms: ${NOTIFICATIONS_POLL_INTERVAL_MS:60000}
+
+logging:
+  level:
+    com.gp.jwinventory: ${LOG_LEVEL:INFO}

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Pubblicazioni')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('publications')}"></nav>
+<main class="container py-3">
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+
+    <div th:if="${openInventoryId != null}" class="alert alert-warning d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <span><i class="bi bi-clipboard-check"></i> <strong>Inventario in corso.</strong> Conta le copie presenti in biblioteca.</span>
+        <a th:href="@{/inventory/{id}(id=${openInventoryId})}" class="btn btn-sm btn-warning">Vai al conteggio</a>
+    </div>
+
+    <div class="d-flex align-items-center justify-content-between gap-2 mb-2 flex-wrap">
+        <h1 class="h3 mb-0">Pubblicazioni
+            <span class="badge rounded-pill text-bg-light border align-middle fs-6" th:text="${#lists.size(publications)}">0</span>
+        </h1>
+        <a sec:authorize="hasAuthority('ADMIN')" th:href="@{/publications/new}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Nuova pubblicazione
+        </a>
+    </div>
+
+    <th:block th:if="${#lists.isEmpty(publications)}">
+        <div class="empty-state">
+            <i class="bi bi-journals"></i>
+            <p class="mb-0">Nessuna pubblicazione censita.</p>
+        </div>
+    </th:block>
+
+    <th:block th:unless="${#lists.isEmpty(publications)}">
+        <div class="sticky-toolbar">
+            <div class="input-group">
+                <span class="input-group-text"><i class="bi bi-search"></i></span>
+                <input type="search" class="form-control" placeholder="Cerca per codice o titolo…"
+                       data-filter-input="#publication-list" autocomplete="off" aria-label="Cerca">
+            </div>
+            <div class="form-text">Usa <strong>+</strong> quando una copia entra, <strong>−</strong> quando esce, oppure scrivi il numero esatto.</div>
+        </div>
+
+        <div id="publication-list" class="list-group shadow-sm">
+            <div th:each="p : ${publications}" class="list-group-item pub-row" data-filter-item
+                 th:data-filter-text="${p.code + ' ' + p.title}">
+                <div class="pub-thumb">
+                    <img th:if="${p.imageUrl != null}" th:src="@{${p.imageUrl}}" alt="" loading="lazy">
+                    <i th:if="${p.imageUrl == null}" class="bi bi-book"></i>
+                </div>
+                <div class="pub-info">
+                    <span class="pub-code" th:text="${p.code}">code</span>
+                    <div class="pub-title" th:text="${p.title}">Titolo</div>
+                </div>
+                <div class="qty-widget" data-qty-widget th:data-url="@{/publications/{id}/quantity(id=${p.id})}">
+                    <button type="button" class="btn btn-outline-danger qty-btn" data-action="dec" title="Uscita (−1)" aria-label="Uscita, meno uno">
+                        <i class="bi bi-dash-lg"></i>
+                    </button>
+                    <input type="number" min="0" inputmode="numeric" class="form-control qty-input"
+                           th:value="${p.quantity}" th:data-last="${p.quantity}" aria-label="Numero di copie">
+                    <button type="button" class="btn btn-outline-success qty-btn" data-action="inc" title="Entrata (+1)" aria-label="Entrata, più uno">
+                        <i class="bi bi-plus-lg"></i>
+                    </button>
+                </div>
+                <div class="pub-actions">
+                    <a th:href="@{/movements(publicationId=${p.id})}" class="btn btn-sm btn-link text-secondary" title="Movimenti">
+                        <i class="bi bi-clock-history"></i>
+                    </a>
+                    <a sec:authorize="hasAuthority('ADMIN')" th:href="@{/publications/{id}/edit(id=${p.id})}"
+                       class="btn btn-sm btn-link text-secondary" title="Modifica">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <p class="text-muted mt-3" hidden data-filter-empty="#publication-list">Nessuna pubblicazione trovata.</p>
+    </th:block>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

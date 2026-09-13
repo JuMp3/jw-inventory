@@ -1,0 +1,54 @@
+#  docker compose up -d                 # db + mailpit + app (http://localhost:8081)
+#  docker compose up -d db mailpit      # only infrastructure, run the app from the IDE
+#  docker compose up -d --build app     # rebuild after code changes
+#  docker compose down -v               # stop and wipe DB data
+services:
+
+  db:
+    image: postgres:18-alpine
+    container_name: jwinventory-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jwinventory
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5435:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U admin -d jwinventory" ]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: jwinventory-mailpit
+    ports:
+      - "1027:1025"   # SMTP
+      - "8027:8025"   # Web UI
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: jwinventory-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/jwinventory
+      DB_USERNAME: admin
+      DB_PASSWORD: password
+      SUPERADMIN_EMAIL: superadmin@jwinventory.local
+      SUPERADMIN_PASSWORD: superadmin123
+      MAIL_HOST: mailpit
+      MAIL_PORT: "1025"
+      MAIL_SMTP_AUTH: "false"
+      MAIL_SMTP_STARTTLS: "false"
+    ports:
+      - "8081:8080"
+
+volumes:
+  pgdata:

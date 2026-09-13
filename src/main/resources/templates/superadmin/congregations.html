@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Congregazioni')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('congregations')}"></nav>
+<main class="container py-3 narrow">
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <h1 class="h3 mb-3">Congregazioni</h1>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <form th:action="@{/superadmin/congregations}" method="post" class="d-flex gap-2">
+                <input type="text" name="name" class="form-control" maxlength="120" placeholder="Nome della nuova congregazione"
+                       aria-label="Nome congregazione" required>
+                <button type="submit" class="btn btn-primary text-nowrap"><i class="bi bi-plus-lg"></i> Aggiungi</button>
+            </form>
+        </div>
+    </div>
+
+    <div th:if="${#lists.isEmpty(congregations)}" class="empty-state">
+        <i class="bi bi-diagram-3"></i>
+        <p class="mb-0">Nessuna congregazione. Aggiungine una per poter creare gli utenti.</p>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(congregations)}" class="list-group shadow-sm">
+        <div th:each="c : ${congregations}" class="list-group-item d-flex align-items-center gap-2 flex-wrap">
+            <form th:action="@{/superadmin/congregations/{id}/rename(id=${c.id})}" method="post"
+                  class="d-flex gap-2 flex-grow-1">
+                <input type="text" name="name" th:value="${c.name}" class="form-control" maxlength="120"
+                       aria-label="Nome congregazione" required>
+                <button type="submit" class="btn btn-outline-secondary" title="Rinomina"><i class="bi bi-check-lg"></i></button>
+            </form>
+            <span class="badge text-bg-light border" th:text="${c.userCount == 1} ? '1 utente' : ${c.userCount} + ' utenti'"></span>
+            <form th:action="@{/superadmin/congregations/{id}/delete(id=${c.id})}" method="post"
+                  data-confirm="Eliminare questa congregazione?">
+                <button type="submit" class="btn btn-outline-danger" th:disabled="${c.userCount > 0}"
+                        th:title="${c.userCount > 0} ? 'Rimuovi prima gli utenti' : 'Elimina'"><i class="bi bi-trash"></i></button>
+            </form>
+        </div>
+    </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

@@ -1,0 +1,16 @@
+management:
+  health:
+    # JavaMailSender is a Mockito mock in tests: the mail health contributor needs a JavaMailSenderImpl
+    mail:
+      enabled: false
+
+app:
+  super-admin:
+    email: superadmin@test.com
+    password: superadmin123
+    full-name: Super Admin Test
+  notifications:
+    # tests call NotificationService.dispatchDue() directly
+    scheduler-enabled: false
+  mail:
+    from: noreply@test.com

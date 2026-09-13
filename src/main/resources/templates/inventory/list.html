@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments/layout :: head('Inventario')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('inventory')}"></nav>
+<main class="container py-3">
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <h1 class="h3 mb-3">Inventario</h1>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <th:block th:if="${openInventoryId != null}">
+                <div>
+                    <div class="fw-semibold"><i class="bi bi-hourglass-split text-warning"></i> Inventario in corso</div>
+                    <div class="small text-muted">Il conteggio può essere completato anche da più persone.</div>
+                </div>
+                <a th:href="@{/inventory/{id}(id=${openInventoryId})}" class="btn btn-warning">
+                    <i class="bi bi-arrow-right-circle"></i> Continua il conteggio
+                </a>
+            </th:block>
+            <th:block th:if="${openInventoryId == null}">
+                <div>
+                    <div class="fw-semibold">Nessun inventario in corso</div>
+                    <div class="small text-muted">Avvia l'inventario mensile per contare le copie realmente presenti in biblioteca.</div>
+                </div>
+                <form th:action="@{/inventory/start}" method="post">
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-play-fill"></i> Avvia inventario</button>
+                </form>
+            </th:block>
+        </div>
+    </div>
+
+    <h2 class="h5 mb-2">Storico</h2>
+    <div th:if="${#lists.isEmpty(sessions)}" class="empty-state">
+        <i class="bi bi-clipboard"></i>
+        <p class="mb-0">Nessun inventario completato.</p>
+    </div>
+    <div th:unless="${#lists.isEmpty(sessions)}" class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                <tr>
+                    <th>Chiuso il</th>
+                    <th>Chiuso da</th>
+                    <th class="text-end">Contate</th>
+                    <th class="text-end">Differenze</th>
+                    <th></th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${sessions}">
+                    <td th:text="${#temporals.format(s.closedAt, 'dd/MM/yyyy HH:mm')}"></td>
+                    <td th:text="${s.closedBy}"></td>
+                    <td class="text-end" th:text="${s.countedCount}"></td>
+                    <td class="text-end">
+                        <span class="badge" th:classappend="${s.differenceCount == 0} ? 'text-bg-success' : 'text-bg-danger'"
+                              th:text="${s.differenceCount}"></span>
+                    </td>
+                    <td class="text-end">
+                        <a th:href="@{/inventory/{id}(id=${s.id})}" class="btn btn-sm btn-outline-secondary">Report</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

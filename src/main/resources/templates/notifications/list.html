@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Notifiche')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('notifications')}"></nav>
+<main class="container py-3">
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
+        <h1 class="h3 mb-0">Notifiche programmate</h1>
+        <a th:href="@{/notifications/new}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nuova notifica</a>
+    </div>
+    <p class="text-muted small mb-3">
+        <span sec:authorize="hasAuthority('ADMIN')">Le notifiche degli amministratori sono condivise tra tutti gli amministratori e visibili in sola lettura agli utenti. Le notifiche personali degli utenti non sono visibili qui.</span>
+        <span sec:authorize="!hasAuthority('ADMIN')">Puoi creare notifiche personali. Quelle degli amministratori sono visibili in sola lettura.</span>
+    </p>
+
+    <div th:if="${#lists.isEmpty(notifications)}" class="empty-state">
+        <i class="bi bi-bell"></i>
+        <p class="mb-0">Nessuna notifica. Crea ad esempio un promemoria per l'inventario entro il 10 di ogni mese.</p>
+    </div>
+
+    <div th:unless="${#lists.isEmpty(notifications)}" class="list-group shadow-sm">
+        <a th:each="n : ${notifications}" th:href="@{/notifications/{id}(id=${n.id})}"
+           class="list-group-item list-group-item-action py-3">
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <strong th:text="${n.name}"></strong>
+                <span th:if="${n.scope.name() == 'ADMIN'}" class="badge text-bg-primary">Amministratori</span>
+                <span th:unless="${n.scope.name() == 'ADMIN'}" class="badge text-bg-secondary">Personale</span>
+                <span th:if="${n.enabled}" class="badge text-bg-success">Attiva</span>
+                <span th:unless="${n.enabled}" class="badge text-bg-light border">Disattivata</span>
+                <span th:unless="${n.editable}" class="small text-muted"><i class="bi bi-lock"></i> sola lettura</span>
+            </div>
+            <div class="small mt-1">
+                <i class="bi bi-calendar-event"></i> <span th:text="${n.scheduleDescription}"></span>
+                <span class="text-muted">·</span>
+                <i class="bi bi-envelope"></i> <span th:text="${n.recipientCount == 1} ? '1 destinatario' : ${n.recipientCount} + ' destinatari'"></span>
+            </div>
+            <div class="small text-muted mt-1">
+                <span th:if="${n.nextRunAt != null}">Prossimo invio: <span th:text="${#temporals.format(n.nextRunAt, 'dd/MM/yyyy HH:mm')}"></span> · </span>
+                <span th:if="${n.lastSentAt != null}">Ultimo invio: <span th:text="${#temporals.format(n.lastSentAt, 'dd/MM/yyyy HH:mm')}"></span> · </span>
+                Creata da <span th:text="${n.ownerName}"></span>
+            </div>
+            <div th:if="${n.lastError != null}" class="small text-danger mt-1">
+                <i class="bi bi-exclamation-triangle"></i> Ultimo invio non riuscito: <span th:text="${n.lastError}"></span>
+            </div>
+        </a>
+    </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>

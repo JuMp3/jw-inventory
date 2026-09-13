@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head th:replace="~{fragments/layout :: head('Profilo')}"></head>
+<body>
+<nav th:replace="~{fragments/layout :: navbar('profile')}"></nav>
+<main class="container py-3 narrow">
+    <div th:replace="~{fragments/layout :: alerts}"></div>
+    <h1 class="h3 mb-3">Profilo</h1>
+
+    <div class="card shadow-sm mb-3">
+        <div class="card-body">
+            <dl class="row mb-0">
+                <dt class="col-sm-4">Nome</dt><dd class="col-sm-8" th:text="${user.fullName}"></dd>
+                <dt class="col-sm-4">Email</dt><dd class="col-sm-8" th:text="${user.email}"></dd>
+                <dt class="col-sm-4">Ruolo</dt><dd class="col-sm-8" th:text="${user.role.label}"></dd>
+                <dt class="col-sm-4">Congregazione</dt><dd class="col-sm-8 mb-0" th:text="${user.congregationName ?: '—'}"></dd>
+            </dl>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h5">Cambia password</h2>
+            <p sec:authorize="hasAuthority('SUPER_ADMIN')" class="text-muted mb-0">
+                La password del Super Admin è gestita dalla configurazione (variabile <code>SUPERADMIN_PASSWORD</code>).
+            </p>
+            <form sec:authorize="!hasAuthority('SUPER_ADMIN')" th:action="@{/profile/password}" th:object="${passwordForm}" method="post">
+                <div class="mb-3">
+                    <label for="currentPassword" class="form-label">Password attuale</label>
+                    <input type="password" id="currentPassword" th:field="*{currentPassword}" class="form-control"
+                           autocomplete="current-password" required>
+                </div>
+                <div class="mb-3">
+                    <label for="newPassword" class="form-label">Nuova password</label>
+                    <input type="password" id="newPassword" th:field="*{newPassword}" class="form-control"
+                           autocomplete="new-password" minlength="8" required>
+                    <div class="form-text">Almeno 8 caratteri.</div>
+                </div>
+                <div class="mb-3">
+                    <label for="confirmPassword" class="form-label">Conferma nuova password</label>
+                    <input type="password" id="confirmPassword" th:field="*{confirmPassword}" class="form-control"
+                           autocomplete="new-password" minlength="8" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Aggiorna password</button>
+            </form>
+        </div>
+    </div>
+</main>
+<th:block th:replace="~{fragments/layout :: scripts}"></th:block>
+</body>
+</html>
