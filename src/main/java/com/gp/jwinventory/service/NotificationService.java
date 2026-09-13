@@ -3,9 +3,11 @@ package com.gp.jwinventory.service;
 import com.gp.jwinventory.dto.NotificationEditView;
 import com.gp.jwinventory.dto.NotificationForm;
 import com.gp.jwinventory.dto.NotificationView;
+import com.gp.jwinventory.dto.RecipientOption;
 import com.gp.jwinventory.entity.ScheduledNotification;
 import com.gp.jwinventory.entity.User;
 import com.gp.jwinventory.enums.NotificationScope;
+import com.gp.jwinventory.enums.Role;
 import com.gp.jwinventory.exceptions.BusinessException;
 import com.gp.jwinventory.exceptions.NotFoundException;
 import com.gp.jwinventory.repository.ScheduledNotificationRepository;
@@ -23,10 +25,12 @@ import java.util.regex.Pattern;
 /**
  * Visibility and edit rules:
  * <ul>
- *   <li>ADMIN-scope notifications (created by ADMIN/SuperAdmin) are shared: every admin can
- *       edit them, every user sees them read-only.</li>
+ *   <li>The SuperAdmin sees and edits every notification.</li>
+ *   <li>SUPER_ADMIN-scope notifications (created by the SuperAdmin) are visible only to the SuperAdmin.</li>
+ *   <li>ADMIN-scope notifications are shared within the creator's congregation: its admins edit
+ *       them, its users see them read-only.</li>
  *   <li>USER-scope notifications are private: only their owner sees and edits them
- *       (admins do not see them).</li>
+ *       (admins and other users do not see them).</li>
  * </ul>
  */
 @Service
@@ -46,7 +50,10 @@ public class NotificationService {
     @Transactional(readOnly = true)
     public List<NotificationView> listVisibleView(String actorEmail) {
         User actor = userService.requireActor(actorEmail);
-        return notificationRepository.findVisibleTo(actor.getId()).stream()
+        List<ScheduledNotification> notifications = actor.getRole() == Role.SUPER_ADMIN
+                ? notificationRepository.findAllOrderByName()
+                : notificationRepository.findVisibleTo(actor.getId(), actor.getCongregation().getId());
+        return notifications.stream()
                 .map(n -> toView(n, canEdit(actor, n)))
                 .toList();
     }
@@ -58,24 +65,38 @@ public class NotificationService {
         return new NotificationEditView(toForm(notification), toView(notification, canEdit(actor, notification)));
     }
 
+    /** Users the actor can pick as recipients (see {@link UserService#recipientCandidates}). */
+    @Transactional(readOnly = true)
+    public List<RecipientOption> listRecipientOptionsView(String actorEmail) {
+        User actor = userService.requireActor(actorEmail);
+        return userService.recipientCandidates(actor).stream()
+                .map(u -> new RecipientOption(u.getEmail(), u.getFullName(), u.getCongregationName()))
+                .toList();
+    }
+
     @Transactional
     public Long create(NotificationForm form, String actorEmail) {
         User actor = userService.requireActor(actorEmail);
         LocalDateTime now = LocalDateTime.now(clock);
         ScheduledNotification notification = ScheduledNotification.builder()
-                .scope(actor.getRole().isAdmin() ? NotificationScope.ADMIN : NotificationScope.USER)
+                .scope(switch (actor.getRole()) {
+                    case SUPER_ADMIN -> NotificationScope.SUPER_ADMIN;
+                    case ADMIN -> NotificationScope.ADMIN;
+                    case USER -> NotificationScope.USER;
+                })
+                .congregation(actor.getCongregation())
                 .owner(actor)
                 .ownerName(actor.getFullName())
                 .createdAt(now)
                 .build();
-        apply(notification, form, now);
+        apply(notification, form, now, actor);
         return notificationRepository.save(notification).getId();
     }
 
     @Transactional
     public void update(Long id, NotificationForm form, String actorEmail) {
         User actor = userService.requireActor(actorEmail);
-        apply(requireEditable(id, actor), form, LocalDateTime.now(clock));
+        apply(requireEditable(id, actor), form, LocalDateTime.now(clock), actor);
     }
 
     @Transactional
@@ -147,7 +168,7 @@ public class NotificationService {
                 notification.getBody());
     }
 
-    private void apply(ScheduledNotification notification, NotificationForm form, LocalDateTime now) {
+    private void apply(ScheduledNotification notification, NotificationForm form, LocalDateTime now, User actor) {
         List<String> recipients = parseRecipients(form.getRecipients());
         if (recipients.isEmpty()) {
             throw new BusinessException("Indica almeno un destinatario");
@@ -155,6 +176,7 @@ public class NotificationService {
         if (recipients.size() > MAX_RECIPIENTS) {
             throw new BusinessException("Massimo " + MAX_RECIPIENTS + " destinatari");
         }
+        requireSelectableRecipients(recipients, notification, actor);
         ScheduleRule rule = validateRule(form);
 
         notification.setName(form.getName().trim());
@@ -171,6 +193,24 @@ public class NotificationService {
                 ? rule.nextAfter(now).orElseThrow(() -> new BusinessException("La data e l'ora di invio sono già passate"))
                 : null);
         notification.setUpdatedAt(now);
+    }
+
+    /**
+     * Recipients must be users the actor can pick. Recipients already saved on the notification
+     * are kept even if outside the actor's scope (e.g. added by the SuperAdmin to a congregation's
+     * notification), so its admins can still save it.
+     */
+    private void requireSelectableRecipients(List<String> recipients, ScheduledNotification notification, User actor) {
+        Set<String> allowed = new HashSet<>();
+        userService.recipientCandidates(actor).forEach(u -> allowed.add(u.getEmail()));
+        if (notification.getRecipients() != null) {
+            allowed.addAll(parseRecipients(notification.getRecipients()));
+        }
+        for (String email : recipients) {
+            if (!allowed.contains(email)) {
+                throw new BusinessException("Destinatario non selezionabile: " + email + " (scegli un utente esistente)");
+            }
+        }
     }
 
     private static ScheduleRule validateRule(NotificationForm form) {
@@ -203,7 +243,7 @@ public class NotificationService {
     private ScheduledNotification requireVisible(Long id, User actor) {
         ScheduledNotification notification = notificationRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("Notifica non trovata"));
-        if (notification.getScope() != NotificationScope.ADMIN && !isOwner(actor, notification)) {
+        if (!canView(actor, notification)) {
             throw new NotFoundException("Notifica non trovata");
         }
         return notification;
@@ -217,10 +257,31 @@ public class NotificationService {
         return notification;
     }
 
+    private static boolean canView(User actor, ScheduledNotification notification) {
+        if (actor.getRole() == Role.SUPER_ADMIN) {
+            return true;
+        }
+        return switch (notification.getScope()) {
+            case SUPER_ADMIN -> false;
+            case ADMIN -> sameCongregation(actor, notification);
+            case USER -> isOwner(actor, notification);
+        };
+    }
+
     private static boolean canEdit(User actor, ScheduledNotification notification) {
-        return actor.getRole().isAdmin()
-                ? notification.getScope() == NotificationScope.ADMIN || isOwner(actor, notification)
-                : notification.getScope() == NotificationScope.USER && isOwner(actor, notification);
+        if (actor.getRole() == Role.SUPER_ADMIN) {
+            return true;
+        }
+        return switch (notification.getScope()) {
+            case SUPER_ADMIN -> false;
+            case ADMIN -> actor.getRole() == Role.ADMIN && sameCongregation(actor, notification);
+            case USER -> isOwner(actor, notification);
+        };
+    }
+
+    private static boolean sameCongregation(User actor, ScheduledNotification notification) {
+        return actor.getCongregation() != null && notification.getCongregation() != null
+                && notification.getCongregation().getId().equals(actor.getCongregation().getId());
     }
 
     private static boolean isOwner(User actor, ScheduledNotification notification) {
@@ -234,7 +295,7 @@ public class NotificationService {
     private static NotificationView toView(ScheduledNotification n, boolean editable) {
         return new NotificationView(n.getId(), n.getName(), n.getSubject(), n.getRecipients(),
                 n.getRecipients().split(",").length, ruleOf(n).describe(), n.isEnabled(), n.getScope(),
-                n.getOwnerName(), n.getNextRunAt(), n.getLastSentAt(), n.getLastError(), editable);
+                n.getCongregation() != null ? n.getCongregation().getName() : null, n.getOwnerName(), n.getNextRunAt(), n.getLastSentAt(), n.getLastError(), editable);
     }
 
     private static NotificationForm toForm(ScheduledNotification n) {

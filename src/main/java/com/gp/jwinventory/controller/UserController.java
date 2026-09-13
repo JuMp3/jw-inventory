@@ -34,22 +34,22 @@ public class UserController {
     }
 
     @GetMapping("/new")
-    public String newForm(Model model) {
+    public String newForm(Principal principal, Model model) {
         model.addAttribute("form", new UserForm());
-        return formView(model, null);
+        return formView(model, null, principal);
     }
 
     @PostMapping("/new")
     public String create(@Valid @ModelAttribute("form") UserForm form, BindingResult binding, Principal principal,
                          Model model, RedirectAttributes redirectAttributes) {
         if (binding.hasErrors()) {
-            return formView(model, null);
+            return formView(model, null, principal);
         }
         try {
             userService.create(form, principal.getName());
         } catch (BusinessException e) {
             model.addAttribute("error", e.getMessage());
-            return formView(model, null);
+            return formView(model, null, principal);
         }
         redirectAttributes.addFlashAttribute("success", "Utente " + form.getFullName().trim() + " creato");
         return "redirect:/admin/users";
@@ -58,20 +58,20 @@ public class UserController {
     @GetMapping("/{id}/edit")
     public String editForm(@PathVariable Long id, Principal principal, Model model) {
         model.addAttribute("form", userService.getForm(id, principal.getName()));
-        return formView(model, id);
+        return formView(model, id, principal);
     }
 
     @PostMapping("/{id}/edit")
     public String update(@PathVariable Long id, @Valid @ModelAttribute("form") UserForm form, BindingResult binding,
                          Principal principal, Model model, RedirectAttributes redirectAttributes) {
         if (binding.hasErrors()) {
-            return formView(model, id);
+            return formView(model, id, principal);
         }
         try {
             userService.update(id, form, principal.getName());
         } catch (BusinessException e) {
             model.addAttribute("error", e.getMessage());
-            return formView(model, id);
+            return formView(model, id, principal);
         }
         redirectAttributes.addFlashAttribute("success", "Utente " + form.getFullName().trim() + " aggiornato");
         return "redirect:/admin/users";
@@ -88,8 +88,10 @@ public class UserController {
         return "redirect:/admin/users";
     }
 
-    private String formView(Model model, Long userId) {
+    private String formView(Model model, Long userId, Principal principal) {
         model.addAttribute("userId", userId);
+        // own account: no delete, no deactivation, no role change (also enforced in UserService)
+        model.addAttribute("self", userId != null && userId.equals(userService.getProfileView(principal.getName()).id()));
         model.addAttribute("roles", ASSIGNABLE_ROLES);
         model.addAttribute("congregations", congregationService.listView());
         return "admin/user-form";

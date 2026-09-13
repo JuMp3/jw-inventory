@@ -99,13 +99,19 @@ CREATE TABLE scheduled_notifications
     day_of_month  INTEGER CHECK (day_of_month BETWEEN 1 AND 31),
     send_time     TIME         NOT NULL,
     enabled       BOOLEAN      NOT NULL DEFAULT TRUE,
-    scope         VARCHAR(10)  NOT NULL CHECK (scope IN ('ADMIN', 'USER')),
-    owner_id      BIGINT REFERENCES users (id) ON DELETE SET NULL,
-    owner_name    VARCHAR(150) NOT NULL,
-    next_run_at   TIMESTAMP,
-    last_sent_at  TIMESTAMP,
-    last_error    VARCHAR(1000),
-    created_at    TIMESTAMP    NOT NULL DEFAULT NOW(),
-    updated_at    TIMESTAMP    NOT NULL DEFAULT NOW()
+    -- SUPER_ADMIN = SuperAdmin only; ADMIN = shared with the admins (edit) and users (read-only)
+    -- of its congregation; USER = personal, owner only. The SuperAdmin sees everything.
+    scope           VARCHAR(20)  NOT NULL CHECK (scope IN ('SUPER_ADMIN', 'ADMIN', 'USER')),
+    -- creator's congregation at creation time
+    congregation_id BIGINT REFERENCES congregations (id) ON DELETE CASCADE,
+    owner_id        BIGINT REFERENCES users (id) ON DELETE SET NULL,
+    owner_name      VARCHAR(150) NOT NULL,
+    next_run_at     TIMESTAMP,
+    last_sent_at    TIMESTAMP,
+    last_error      VARCHAR(1000),
+    created_at      TIMESTAMP    NOT NULL DEFAULT NOW(),
+    updated_at      TIMESTAMP    NOT NULL DEFAULT NOW(),
+    CONSTRAINT ck_notifications_congregation CHECK ((scope = 'SUPER_ADMIN') = (congregation_id IS NULL))
 );
 CREATE INDEX ix_notifications_due ON scheduled_notifications (next_run_at) WHERE enabled;
+CREATE INDEX ix_notifications_congregation ON scheduled_notifications (congregation_id);

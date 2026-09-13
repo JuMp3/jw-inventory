@@ -216,6 +216,65 @@ body {
 .role-ADMIN { background: var(--app-accent); color: #fff; }
 .role-USER { background: #e9ecef; color: #495057; }
 
+/* ---------- recipient picker ---------- */
+.recipient-field {
+    position: relative;
+}
+
+.recipient-box {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: .35rem;
+    min-height: calc(1.5em + .75rem + 2px);
+    cursor: text;
+}
+
+.recipient-box > span {
+    display: contents;
+}
+
+.recipient-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    max-width: 100%;
+    padding: .1rem .35rem .1rem .6rem;
+    border-radius: 1rem;
+    background: var(--app-accent-soft);
+    color: var(--app-accent);
+    font-size: .875rem;
+    font-weight: 600;
+    overflow-wrap: anywhere;
+}
+
+.recipient-chip .btn-close {
+    font-size: .6rem;
+}
+
+.recipient-search {
+    flex: 1 1 140px;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    padding: 0;
+}
+
+fieldset:disabled .recipient-box {
+    background-color: var(--bs-secondary-bg);
+    cursor: default;
+}
+
+.recipient-suggestions {
+    position: absolute;
+    left: calc(var(--bs-gutter-x) * .5);
+    right: calc(var(--bs-gutter-x) * .5);
+    z-index: 10;
+    max-height: 18rem;
+    overflow-y: auto;
+}
+
 /* ---------- toast ---------- */
 .app-toast {
     position: fixed;

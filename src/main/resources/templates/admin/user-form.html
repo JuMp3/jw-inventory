@@ -31,7 +31,7 @@
                                th:classappend="${#fields.hasErrors('email')} ? 'is-invalid'" required>
                         <div class="invalid-feedback" th:errors="*{email}"></div>
                     </div>
-                    <div class="col-sm-6">
+                    <div class="col-sm-6" th:unless="${self}">
                         <label for="role" class="form-label">Ruolo</label>
                         <select id="role" th:field="*{role}" class="form-select"
                                 th:classappend="${#fields.hasErrors('role')} ? 'is-invalid'">
@@ -39,6 +39,12 @@
                         </select>
                         <div class="invalid-feedback" th:errors="*{role}"></div>
                         <div class="form-text">Admin: gestisce tutto. Utente: inventario e quantità.</div>
+                    </div>
+                    <div class="col-sm-6" th:if="${self}">
+                        <div class="form-label">Ruolo</div>
+                        <input type="hidden" th:field="*{role}">
+                        <span class="badge" th:classappend="'role-' + *{role}" th:text="*{role.label}"></span>
+                        <div class="form-text">Non puoi cambiare il ruolo del tuo account.</div>
                     </div>
                     <div class="col-sm-6" sec:authorize="hasAuthority('SUPER_ADMIN')">
                         <label for="congregationId" class="form-label">Congregazione</label>
@@ -56,11 +62,15 @@
                                autocomplete="new-password" minlength="8" th:required="${userId == null}">
                         <div class="form-text" th:text="${userId == null} ? 'Almeno 8 caratteri.' : 'Lascia vuoto per non cambiarla.'"></div>
                     </div>
-                    <div class="col-12">
+                    <div class="col-12" th:unless="${self}">
                         <div class="form-check form-switch">
                             <input class="form-check-input" type="checkbox" role="switch" id="enabled" th:field="*{enabled}">
                             <label class="form-check-label" for="enabled">Account attivo (può accedere)</label>
                         </div>
+                    </div>
+                    <div class="col-12" th:if="${self}">
+                        <input type="hidden" name="enabled" value="true">
+                        <div class="form-text"><i class="bi bi-person-lock"></i> Questo è il tuo account: non puoi disattivarlo né eliminarlo.</div>
                     </div>
                 </div>
                 <div class="d-flex gap-2 mt-4">
@@ -71,7 +81,7 @@
         </div>
     </div>
 
-    <div th:if="${userId != null}" class="card border-danger-subtle mt-4">
+    <div th:if="${userId != null and !self}" class="card border-danger-subtle mt-4">
         <div class="card-body d-flex align-items-center justify-content-between flex-wrap gap-2">
             <div>
                 <strong>Elimina utente</strong>

@@ -27,7 +27,7 @@ Controller (thin; DTOs/forms/ids only) → Service (@Transactional, entity→DTO
 
 - Authorities are hierarchical (`CustomUserDetailsService.authoritiesFor`): SUPER_ADMIN ⊃ ADMIN ⊃ USER.
 - `SecurityConfig` does path rules and ends with `anyRequest().denyAll()` — new routes must be registered there.
-- Data-dependent rules live in services: `UserService` (ADMIN scoped to own congregation, SuperAdmin untouchable, no SUPER_ADMIN assignment), `NotificationService` (scope ADMIN = shared among admins, read-only for users; scope USER = private to owner).
+- Data-dependent rules live in services: `UserService` (ADMIN scoped to own congregation, SuperAdmin untouchable, no SUPER_ADMIN assignment), `NotificationService` (SuperAdmin sees/edits all; scope SUPER_ADMIN = SuperAdmin only; scope ADMIN = shared within `congregation_id`: its admins edit, its users read-only; scope USER = private to owner).
 - The single SuperAdmin comes from `app.super-admin.*` (`SuperAdminBootstrap`, realigned on every start); DB partial unique index + check constraint (`congregation_id IS NULL` iff SUPER_ADMIN).
 
 ### Domain

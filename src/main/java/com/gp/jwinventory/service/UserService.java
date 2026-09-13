@@ -62,6 +62,17 @@ public class UserService {
         return users.stream().map(UserService::toView).toList();
     }
 
+    /**
+     * Service-internal: users that can be picked as notification recipients by the actor.
+     * SuperAdmin: every user; anyone else: the users of its own congregation.
+     */
+    @Transactional(readOnly = true)
+    public List<User> recipientCandidates(User actor) {
+        return actor.getRole() == Role.SUPER_ADMIN
+                ? userRepository.findAllByOrderByFullNameAsc()
+                : userRepository.findByCongregationIdOrderByFullNameAsc(actor.getCongregation().getId());
+    }
+
     @Transactional(readOnly = true)
     public UserForm getForm(Long id, String actorEmail) {
         User target = requireManageable(id, requireAdmin(actorEmail));

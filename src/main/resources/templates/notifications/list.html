@@ -11,8 +11,9 @@
         <a th:href="@{/notifications/new}" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Nuova notifica</a>
     </div>
     <p class="text-muted small mb-3">
-        <span sec:authorize="hasAuthority('ADMIN')">Le notifiche degli amministratori sono condivise tra tutti gli amministratori e visibili in sola lettura agli utenti. Le notifiche personali degli utenti non sono visibili qui.</span>
-        <span sec:authorize="!hasAuthority('ADMIN')">Puoi creare notifiche personali. Quelle degli amministratori sono visibili in sola lettura.</span>
+        <span sec:authorize="hasAuthority('SUPER_ADMIN')">Vedi e modifichi tutte le notifiche: le tue (visibili solo al Super Admin), quelle degli amministratori di ogni congregazione e quelle personali degli utenti.</span>
+        <span sec:authorize="hasAuthority('ADMIN') and !hasAuthority('SUPER_ADMIN')">Le notifiche degli amministratori sono condivise tra gli amministratori della tua congregazione e visibili in sola lettura ai suoi utenti. Le notifiche personali degli utenti non sono visibili qui.</span>
+        <span sec:authorize="!hasAuthority('ADMIN')">Puoi creare notifiche personali, visibili solo a te. Quelle degli amministratori della tua congregazione sono visibili in sola lettura.</span>
     </p>
 
     <div th:if="${#lists.isEmpty(notifications)}" class="empty-state">
@@ -25,8 +26,11 @@
            class="list-group-item list-group-item-action py-3">
             <div class="d-flex align-items-center gap-2 flex-wrap">
                 <strong th:text="${n.name}"></strong>
+                <span th:if="${n.scope.name() == 'SUPER_ADMIN'}" class="badge text-bg-dark">Super Admin</span>
                 <span th:if="${n.scope.name() == 'ADMIN'}" class="badge text-bg-primary">Amministratori</span>
-                <span th:unless="${n.scope.name() == 'ADMIN'}" class="badge text-bg-secondary">Personale</span>
+                <span th:if="${n.scope.name() == 'USER'}" class="badge text-bg-secondary">Personale</span>
+                <span sec:authorize="hasAuthority('SUPER_ADMIN')" th:if="${n.congregationName != null}"
+                      class="small text-muted"><i class="bi bi-diagram-3"></i> <span th:text="${n.congregationName}"></span></span>
                 <span th:if="${n.enabled}" class="badge text-bg-success">Attiva</span>
                 <span th:unless="${n.enabled}" class="badge text-bg-light border">Disattivata</span>
                 <span th:unless="${n.editable}" class="small text-muted"><i class="bi bi-lock"></i> sola lettura</span>

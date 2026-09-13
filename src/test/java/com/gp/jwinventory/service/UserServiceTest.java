@@ -134,6 +134,38 @@ class UserServiceTest extends BaseTest {
     }
 
     @Test
+    void admin_cannotDeactivateSelf_butCanDeactivateAndDeleteOthers() {
+        UserForm self = form(northAdmin.getEmail(), Role.ADMIN, null);
+        self.setPassword("");
+        self.setEnabled(false);
+        assertThatThrownBy(() -> userService.update(northAdmin.getId(), self, northAdmin.getEmail()))
+                .isInstanceOf(BusinessException.class);
+        assertThat(northAdmin.isEnabled()).isTrue();
+
+        User other = newUser("other-admin@test.com", Role.ADMIN, north);
+        UserForm otherForm = form(other.getEmail(), Role.ADMIN, null);
+        otherForm.setPassword("");
+        otherForm.setEnabled(false);
+        userService.update(other.getId(), otherForm, northAdmin.getEmail());
+        assertThat(other.isEnabled()).isFalse();
+
+        userService.delete(other.getId(), northAdmin.getEmail());
+        assertThat(userRepository.findById(other.getId())).isEmpty();
+    }
+
+    @Test
+    void plainUser_cannotDeleteOrDeactivateSelf() {
+        User user = newUser("self-user@test.com", Role.USER, north);
+        UserForm form = form(user.getEmail(), Role.USER, null);
+        form.setEnabled(false);
+
+        assertThatThrownBy(() -> userService.delete(user.getId(), user.getEmail()))
+                .isInstanceOf(AccessDeniedException.class);
+        assertThatThrownBy(() -> userService.update(user.getId(), form, user.getEmail()))
+                .isInstanceOf(AccessDeniedException.class);
+    }
+
+    @Test
     void update_blankPassword_keepsCurrentOne() {
         User user = newUser("keep@test.com", Role.USER, north);
         String hash = user.getPassword();
@@ -186,7 +218,7 @@ class UserServiceTest extends BaseTest {
         return ScheduledNotification.builder()
                 .name("n-" + scope).subject("s").body("b").recipients("a@test.com")
                 .scheduleType(ScheduleType.DAILY).sendTime(LocalTime.of(9, 0)).enabled(true)
-                .scope(scope).owner(owner).ownerName(owner.getFullName())
+                .scope(scope).congregation(owner.getCongregation()).owner(owner).ownerName(owner.getFullName())
                 .createdAt(now).updatedAt(now)
                 .build();
     }

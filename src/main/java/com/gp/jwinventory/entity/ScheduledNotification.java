@@ -56,8 +56,13 @@ public class ScheduledNotification {
     private boolean enabled;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(nullable = false, length = 20)
     private NotificationScope scope;
+
+    /** Creator's congregation at creation time; null only for SUPER_ADMIN scope (DB check constraint). */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "congregation_id")
+    private Congregation congregation;
 
     /** Null when the owner was deleted (ADMIN-scope notifications outlive their creator). */
     @ManyToOne(fetch = FetchType.LAZY)

@@ -181,6 +181,131 @@
         update();
     });
 
+    // ---------- notification form: recipient picker (existing users only) ----------
+    document.querySelectorAll('[data-recipient-picker]').forEach(picker => {
+        const hidden = picker.querySelector('[data-recipient-value]');
+        const chips = picker.querySelector('[data-recipient-chips]');
+        const search = picker.querySelector('[data-recipient-search]');
+        const box = search.parentElement;
+        const suggestions = picker.querySelector('[data-recipient-suggestions]');
+        const readOnly = search.matches(':disabled');
+        const options = [...picker.querySelectorAll('[data-recipient-options] li')].map(li => ({
+            email: li.dataset.email,
+            name: li.dataset.name,
+            congregation: li.dataset.congregation || ''
+        }));
+        const byEmail = new Map(options.map(o => [o.email, o]));
+        let selected = (hidden.value || '').split(/[,;\s]+/).map(e => e.trim().toLowerCase()).filter(Boolean);
+        let matches = [];
+        let active = -1;
+
+        function sync() {
+            hidden.value = selected.join(', ');
+            chips.replaceChildren(...selected.map(email => {
+                const option = byEmail.get(email);
+                const chip = document.createElement('span');
+                chip.className = 'recipient-chip';
+                chip.title = email;
+                chip.textContent = option ? option.name : email;
+                if (!readOnly) {
+                    const remove = document.createElement('button');
+                    remove.type = 'button';
+                    remove.className = 'btn-close';
+                    remove.setAttribute('aria-label', 'Rimuovi ' + chip.textContent);
+                    remove.addEventListener('click', () => {
+                        selected = selected.filter(e => e !== email);
+                        sync();
+                        search.focus();
+                    });
+                    chip.append(remove);
+                }
+                return chip;
+            }));
+            search.placeholder = selected.length ? '' : 'Scrivi nome o email…';
+        }
+
+        function close() {
+            suggestions.hidden = true;
+            search.setAttribute('aria-expanded', 'false');
+            active = -1;
+        }
+
+        function render() {
+            const text = search.value.trim().toLowerCase();
+            matches = options
+                .filter(o => !selected.includes(o.email))
+                .filter(o => !text || (o.name + ' ' + o.email + ' ' + o.congregation).toLowerCase().includes(text))
+                .slice(0, 8);
+            active = matches.length ? 0 : -1;
+            if (!matches.length) {
+                const empty = document.createElement('div');
+                empty.className = 'list-group-item small text-muted';
+                empty.textContent = options.length ? 'Nessun utente trovato' : 'Nessun utente disponibile';
+                suggestions.replaceChildren(empty);
+            } else {
+                suggestions.replaceChildren(...matches.map((o, i) => {
+                    const item = document.createElement('button');
+                    item.type = 'button';
+                    item.className = 'list-group-item list-group-item-action';
+                    item.setAttribute('role', 'option');
+                    const name = document.createElement('div');
+                    name.className = 'fw-semibold';
+                    name.textContent = o.name;
+                    const detail = document.createElement('div');
+                    detail.className = 'small text-muted';
+                    detail.textContent = o.congregation ? o.email + ' · ' + o.congregation : o.email;
+                    item.append(name, detail);
+                    // mousedown keeps focus on the search box (no blur → close before click)
+                    item.addEventListener('mousedown', event => event.preventDefault());
+                    item.addEventListener('click', () => pick(i));
+                    return item;
+                }));
+            }
+            highlight();
+            suggestions.hidden = false;
+            search.setAttribute('aria-expanded', 'true');
+        }
+
+        function highlight() {
+            suggestions.querySelectorAll('[role="option"]').forEach((el, i) => el.classList.toggle('active', i === active));
+        }
+
+        function pick(index) {
+            const option = matches[index];
+            if (!option) return;
+            selected.push(option.email);
+            search.value = '';
+            sync();
+            render();
+        }
+
+        sync();
+        if (readOnly) return;
+
+        box.addEventListener('click', () => search.focus());
+        search.addEventListener('focus', render);
+        search.addEventListener('input', render);
+        search.addEventListener('blur', close);
+        search.addEventListener('keydown', event => {
+            if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                event.preventDefault();
+                if (suggestions.hidden) return render();
+                if (!matches.length) return;
+                active = (active + (event.key === 'ArrowDown' ? 1 : -1) + matches.length) % matches.length;
+                highlight();
+            } else if (event.key === 'Enter') {
+                event.preventDefault(); // never submit the form from the search box
+                if (!suggestions.hidden) pick(active);
+            } else if (event.key === 'Escape') {
+                close();
+            } else if (event.key === 'Backspace' && !search.value && selected.length) {
+                selected.pop();
+                sync();
+                render();
+            }
+        });
+    });
+
     // ---------- image upload: size check + preview ----------
     document.querySelectorAll('input[type="file"][data-max-bytes]').forEach(input => {
         input.addEventListener('change', () => {

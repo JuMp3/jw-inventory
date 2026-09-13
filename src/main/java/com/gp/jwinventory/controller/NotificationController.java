@@ -44,22 +44,22 @@ public class NotificationController {
     }
 
     @GetMapping("/new")
-    public String newForm(Model model) {
+    public String newForm(Principal principal, Model model) {
         model.addAttribute("form", new NotificationForm());
-        return formView(model, null);
+        return formView(model, null, principal);
     }
 
     @PostMapping("/new")
     public String create(@Valid @ModelAttribute("form") NotificationForm form, BindingResult binding,
                          Principal principal, Model model, RedirectAttributes redirectAttributes) {
         if (binding.hasErrors()) {
-            return formView(model, null);
+            return formView(model, null, principal);
         }
         try {
             notificationService.create(form, principal.getName());
         } catch (BusinessException e) {
             model.addAttribute("error", e.getMessage());
-            return formView(model, null);
+            return formView(model, null, principal);
         }
         redirectAttributes.addFlashAttribute("success", "Notifica \"" + form.getName().trim() + "\" creata");
         return "redirect:/notifications";
@@ -69,7 +69,7 @@ public class NotificationController {
     public String edit(@PathVariable Long id, Principal principal, Model model) {
         NotificationEditView editView = notificationService.getEditView(id, principal.getName());
         model.addAttribute("form", editView.form());
-        return formView(model, editView.view());
+        return formView(model, editView.view(), principal);
     }
 
     @PostMapping("/{id}")
@@ -77,13 +77,13 @@ public class NotificationController {
                          BindingResult binding, Principal principal, Model model,
                          RedirectAttributes redirectAttributes) {
         if (binding.hasErrors()) {
-            return formView(model, notificationService.getEditView(id, principal.getName()).view());
+            return formView(model, notificationService.getEditView(id, principal.getName()).view(), principal);
         }
         try {
             notificationService.update(id, form, principal.getName());
         } catch (BusinessException e) {
             model.addAttribute("error", e.getMessage());
-            return formView(model, notificationService.getEditView(id, principal.getName()).view());
+            return formView(model, notificationService.getEditView(id, principal.getName()).view(), principal);
         }
         redirectAttributes.addFlashAttribute("success", "Notifica \"" + form.getName().trim() + "\" salvata");
         return "redirect:/notifications";
@@ -107,9 +107,10 @@ public class NotificationController {
         return "redirect:/notifications/" + id;
     }
 
-    private static String formView(Model model, NotificationView view) {
+    private String formView(Model model, NotificationView view, Principal principal) {
         model.addAttribute("view", view);
         model.addAttribute("editable", view == null || view.editable());
+        model.addAttribute("recipientOptions", notificationService.listRecipientOptionsView(principal.getName()));
         model.addAttribute("scheduleTypes", ScheduleType.values());
         model.addAttribute("daysOfWeek", DAYS_OF_WEEK);
         return "notifications/form";

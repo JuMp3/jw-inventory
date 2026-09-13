@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
 <head th:replace="~{fragments/layout :: head(${view == null} ? 'Nuova notifica' : ${view.name})}"></head>
 <body>
 <nav th:replace="~{fragments/layout :: navbar('notifications')}"></nav>
@@ -48,13 +49,24 @@
                         </div>
 
                         <div class="col-12"><h2 class="h6 text-uppercase text-muted mb-0 mt-2">Email</h2></div>
-                        <div class="col-12">
-                            <label for="recipients" class="form-label">Destinatari</label>
-                            <textarea id="recipients" th:field="*{recipients}" class="form-control" rows="3"
-                                      placeholder="mario.rossi@example.com, anna.bianchi@example.com"
-                                      th:classappend="${#fields.hasErrors('recipients')} ? 'is-invalid'" required></textarea>
-                            <div class="invalid-feedback" th:errors="*{recipients}"></div>
-                            <div class="form-text">Separa gli indirizzi con una virgola o vai a capo. I destinatari non vedono gli altri indirizzi.</div>
+                        <div class="col-12 recipient-field" data-recipient-picker>
+                            <label for="recipient-search" class="form-label">Destinatari</label>
+                            <input type="hidden" th:field="*{recipients}" data-recipient-value>
+                            <div class="form-control recipient-box"
+                                 th:classappend="${#fields.hasErrors('recipients')} ? 'is-invalid'">
+                                <span data-recipient-chips></span>
+                                <input type="text" id="recipient-search" class="recipient-search" autocomplete="off"
+                                       placeholder="Scrivi nome o email…" role="combobox" aria-expanded="false"
+                                       aria-controls="recipient-suggestions" data-recipient-search>
+                            </div>
+                            <div id="recipient-suggestions" class="list-group shadow recipient-suggestions" role="listbox"
+                                 hidden data-recipient-suggestions></div>
+                            <div class="invalid-feedback d-block" th:errors="*{recipients}"></div>
+                            <div class="form-text">Puoi scegliere solo utenti esistenti<th:block sec:authorize="!hasAuthority('SUPER_ADMIN')"> della tua congregazione</th:block>. I destinatari non vedono gli altri indirizzi.</div>
+                            <ul hidden data-recipient-options>
+                                <li th:each="o : ${recipientOptions}" th:data-email="${o.email}"
+                                    th:data-name="${o.fullName}" th:data-congregation="${o.congregationName}"></li>
+                            </ul>
                         </div>
                         <div class="col-12">
                             <label for="subject" class="form-label">Oggetto</label>

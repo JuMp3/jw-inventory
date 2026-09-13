@@ -11,8 +11,8 @@ Web app per gestire l'inventario delle pubblicazioni di una biblioteca condivisa
 | | Censimento, modifica (codice, titolo, immagine), eliminazione | Admin |
 | **Movimenti** | Storico di ogni variazione (entrata, uscita, rettifica, inventario) con utente e congregazione | tutti |
 | **Inventario** | Sessione mensile: si contano le copie presenti, la app mostra le differenze; alla chiusura le quantità contate sostituiscono quelle a sistema (le pubblicazioni non contate restano invariate). Report storici | tutti (annullamento: Admin) |
-| **Notifiche email** | Invii programmati: una volta (data), ogni giorno, ogni settimana, ogni mese (giorno X; se il mese è più corto, l'ultimo giorno). Destinatari multipli in CCN, invio di prova | tutti |
-| **Utenti** | Creazione/modifica/eliminazione utenti Admin e Utente | Admin (propria congregazione), Super Admin (tutte) |
+| **Notifiche email** | Invii programmati: una volta (data), ogni giorno, ogni settimana, ogni mese (giorno X; se il mese è più corto, l'ultimo giorno). Destinatari multipli in CCN scelti con autocompletamento tra gli utenti esistenti (della propria congregazione; il Super Admin tra tutti), invio di prova | tutti |
+| **Utenti** | Creazione/modifica/eliminazione utenti Admin e Utente; nessuno può disattivare, eliminare o cambiare ruolo al proprio account | Admin (propria congregazione), Super Admin (tutte) |
 | **Congregazioni** | Creazione, rinomina, eliminazione (solo se senza utenti) | Super Admin |
 
 ### Ruoli
@@ -23,8 +23,14 @@ Web app per gestire l'inventario delle pubblicazioni di una biblioteca condivisa
 
 ### Visibilità notifiche
 
-- Notifiche create da Admin/Super Admin: **condivise** — tutti gli Admin (di ogni congregazione) le vedono e modificano; tutti gli Utenti le vedono in sola lettura.
-- Notifiche create da un Utente: **personali** — visibili e modificabili solo dal creatore (gli Admin non le vedono). Vengono eliminate con l'utente.
+| Notifica creata da | Super Admin | Admin della stessa congregazione | Utenti della stessa congregazione | Altre congregazioni |
+|--------------------|-------------|----------------------------------|-----------------------------------|---------------------|
+| **Super Admin** | vede e modifica | — | — | — |
+| **Admin** | vede e modifica | vedono e modificano | vedono in sola lettura | — |
+| **Utente** (personale) | vede e modifica | — | — (solo il creatore la vede e modifica) | — |
+
+- La congregazione di una notifica è quella del creatore al momento della creazione. Le notifiche degli Admin restano alla congregazione anche se il creatore viene eliminato; quelle personali vengono eliminate con l'utente. Eliminando una congregazione si eliminano le sue notifiche.
+- **Destinatari**: solo utenti esistenti. Admin e Utenti scelgono tra gli utenti della propria congregazione, il Super Admin tra tutti. I destinatari già presenti in una notifica (es. aggiunti dal Super Admin) restano validi quando la modifica un Admin.
 
 ## Stack
 

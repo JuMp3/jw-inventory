@@ -46,6 +46,7 @@ class PageRenderingTest extends BaseTest {
 
     private User superAdmin;
     private User member;
+    private User congregationAdmin;
     private Long publicationId;
     private Long closedInventoryId;
     private Long openInventoryId;
@@ -55,6 +56,7 @@ class PageRenderingTest extends BaseTest {
     void setUp() {
         superAdmin = superAdmin();
         member = newUser("member-pages@test.com", Role.USER, newCongregation("Cong Pagine"));
+        congregationAdmin = newUser("admin-pages@test.com", Role.ADMIN, member.getCongregation());
 
         PublicationForm publication = new PublicationForm();
         publication.setCode("page-lff");
@@ -68,15 +70,19 @@ class PageRenderingTest extends BaseTest {
         inventoryService.close(closedInventoryId, member.getEmail());
         openInventoryId = inventoryService.start(member.getEmail());
 
+        adminNotificationId = notificationService.create(notificationForm("Promemoria inventario"), congregationAdmin.getEmail());
+    }
+
+    private NotificationForm notificationForm(String name) {
         NotificationForm notification = new NotificationForm();
-        notification.setName("Promemoria inventario");
+        notification.setName(name);
         notification.setSubject("Inventario entro il 10");
         notification.setBody("Testo");
-        notification.setRecipients("a@test.com");
+        notification.setRecipients(member.getEmail());
         notification.setScheduleType(ScheduleType.MONTHLY);
         notification.setDayOfMonth(5);
         notification.setSendTime(LocalTime.of(9, 0));
-        adminNotificationId = notificationService.create(notification, superAdmin.getEmail());
+        return notification;
     }
 
     private UserRequestPostProcessor asSuperAdmin() {
@@ -131,13 +137,25 @@ class PageRenderingTest extends BaseTest {
 
     @Test
     void notificationPages_render() throws Exception {
+        notificationService.create(notificationForm("Solo Super Admin"), superAdmin.getEmail());
         mockMvc.perform(get("/notifications").with(asSuperAdmin()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Il giorno 5 di ogni mese alle 09:00")));
-        mockMvc.perform(get("/notifications/new").with(asMember())).andExpect(status().isOk());
+                .andExpect(content().string(containsString("Il giorno 5 di ogni mese alle 09:00")))
+                .andExpect(content().string(containsString("Solo Super Admin")))
+                .andExpect(content().string(containsString("Cong Pagine")));
+        mockMvc.perform(get("/notifications").with(asMember()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Promemoria inventario")))
+                .andExpect(content().string(not(containsString("Solo Super Admin"))));
+        mockMvc.perform(get("/notifications/new").with(asMember()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("data-email=\"" + member.getEmail() + "\"")))
+                .andExpect(content().string(containsString("della tua congregazione")));
         mockMvc.perform(get("/notifications/{id}", adminNotificationId).with(asSuperAdmin()))
                 .andExpect(status().isOk())
-                .andExpect(content().string(containsString("Invia ora")));
+                .andExpect(content().string(containsString("Invia ora")))
+                .andExpect(content().string(containsString("data-email=\"" + superAdmin.getEmail() + "\"")))
+                .andExpect(content().string(not(containsString("della tua congregazione"))));
         mockMvc.perform(get("/notifications/{id}", adminNotificationId).with(asMember()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("puoi solo visualizzarla")))
@@ -150,7 +168,15 @@ class PageRenderingTest extends BaseTest {
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString(member.getEmail())));
         mockMvc.perform(get("/admin/users/new").with(asSuperAdmin())).andExpect(status().isOk());
-        mockMvc.perform(get("/admin/users/{id}/edit", member.getId()).with(asSuperAdmin())).andExpect(status().isOk());
+        mockMvc.perform(get("/admin/users/{id}/edit", member.getId()).with(asSuperAdmin()))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("Elimina utente")));
+        mockMvc.perform(get("/admin/users/{id}/edit", congregationAdmin.getId())
+                        .with(user(congregationAdmin.getEmail()).authorities(CustomUserDetailsService.authoritiesFor(Role.ADMIN))))
+                .andExpect(status().isOk())
+                .andExpect(content().string(containsString("non puoi disattivarlo né eliminarlo")))
+                .andExpect(content().string(not(containsString("Elimina utente"))))
+                .andExpect(content().string(not(containsString("id=\"enabled\""))));
         mockMvc.perform(get("/superadmin/congregations").with(asSuperAdmin()))
                 .andExpect(status().isOk())
                 .andExpect(content().string(containsString("Cong Pagine")));
